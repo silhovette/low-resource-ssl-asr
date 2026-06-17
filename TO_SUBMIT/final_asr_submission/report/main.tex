@@ -1,0 +1,183 @@
+\documentclass{article}
+\usepackage{spconf,amsmath,graphicx,booktabs,url}
+
+\title{LOW-RESOURCE ASR WITH PRETRAINED SPEECH SELF-SUPERVISED REPRESENTATIONS}
+\name{Yuhua Luo \qquad Haomin Hu \qquad Yuecheng Han}
+\address{Course Project\\
+Yuhua Luo: 524531910035 \qquad Haomin Hu: 524531910040 \qquad Yuecheng Han: 524531910029}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This project studies low-resource automatic speech recognition (ASR) with
+pretrained speech self-supervised learning (SSL) representations. We implement
+a LibriSpeech pipeline with transcript normalization, JSONL manifests,
+character-level CTC training, greedy decoding, WER/CER evaluation, and
+qualitative error analysis. Using approximately one hour from LibriSpeech
+\texttt{train-clean-100}, we compare a small log-mel CTC baseline with
+wav2vec 2.0 and HuBERT encoders followed by a CTC head. A focused layer
+ablation shows that an intermediate wav2vec 2.0 layer is much stronger than
+the final layer under the frozen-encoder setting. The best system is HuBERT
+base with a frozen encoder, reaching 0.662 WER and 0.236 CER on the evaluated
+\texttt{test-clean} set.
+\end{abstract}
+
+\begin{keywords}
+speech recognition, self-supervised learning, wav2vec 2.0, HuBERT, CTC
+\end{keywords}
+
+\section{Introduction}
+
+Low-resource ASR is difficult because the model must learn an acoustic-to-text
+mapping from limited paired speech and transcripts. Speech SSL pretraining
+addresses this limitation by learning robust acoustic representations from
+large unlabeled audio corpora before downstream supervised training. This
+project follows that approach and builds an English ASR system centered on
+pretrained wav2vec 2.0 \cite{baevski2020wav2vec} and HuBERT
+\cite{hsu2021hubert} representations.
+
+The goal is not to compare a large model zoo. Instead, the study asks whether
+pretrained SSL hidden states help in a one-GPU, low-resource LibriSpeech
+setting, and whether representation choice matters when the downstream model
+is deliberately small. The implemented system therefore includes one
+conventional baseline, two SSL encoders, and one single-factor layer ablation.
+We focus on continuous hidden-state representations rather than discrete units;
+this choice keeps the downstream system simple enough to train and evaluate
+reliably within the course-project compute budget.
+
+\section{Method}
+
+\subsection{Data and Normalization}
+
+The experiments use LibriSpeech \cite{panayotov2015librispeech}. To avoid
+unreliable long tar downloads, the data preparation script reads the
+\texttt{openslr/librispeech\_asr} parquet mirror, materializes FLAC files, and
+writes LibriSpeech-style JSONL manifests. The training split contains 269
+utterances, totaling 1.004 hours, sampled from \texttt{train-clean-100}. The
+development and test manifests contain 2703 and 2620 utterances from
+\texttt{dev-clean} and \texttt{test-clean}.
+
+Transcripts are lowercased, punctuation is removed, apostrophes are preserved,
+and repeated whitespace is collapsed. The CTC vocabulary is character-level
+and includes a blank symbol, a padding symbol, an unknown symbol, letters,
+apostrophe, and space.
+
+\subsection{Log-Mel CTC Baseline}
+
+The baseline extracts 80-dimensional log-mel features with torchaudio and
+feeds them to a small feed-forward encoder with four hidden layers. A linear
+CTC head predicts character labels. This model has no pretrained speech
+knowledge and serves as the low-resource non-SSL comparison.
+
+\subsection{SSL CTC Models}
+
+The SSL systems use Hugging Face Transformers encoders followed by a small CTC
+projection head. We evaluate wav2vec 2.0 base and HuBERT base. In the main SSL
+runs, the encoder is frozen and only the CTC head is trained. This keeps the
+experiment feasible on one 8 GB GPU and isolates the usefulness of pretrained
+hidden states.
+
+For layer analysis, we compare wav2vec 2.0 final-layer features against
+wav2vec 2.0 layer 6 features while keeping the dataset, optimizer, frozen
+encoder setting, CTC head, and decoding procedure unchanged.
+
+\subsection{Experimental Controls}
+
+All systems use the same transcript normalization, character vocabulary
+construction, CTC objective, and greedy CTC decoding. No external language
+model is used. This makes the comparison conservative: language-model fusion
+could improve absolute WER, but it would also obscure how much information the
+acoustic representation itself contributes. The log-mel system is the
+non-pretrained control, the HuBERT and wav2vec 2.0 systems test the effect of
+SSL pretraining, and the wav2vec 2.0 layer-6 run isolates the hidden-layer
+choice while leaving the rest of the pipeline fixed.
+
+\section{Experimental Setup}
+
+All completed training used PyTorch 2.7.1 with CUDA 12.8 on an NVIDIA GeForce
+RTX 4060 Laptop GPU. The log-mel baseline was trained for 8 epochs. The SSL
+systems were trained for 5 epochs with batch size 2 and AdamW. Decoding uses
+greedy CTC collapse without an external language model.
+
+WER and CER are the primary metrics. Real-time factor (RTF) is also recorded.
+For SSL models, the final retained evaluation uses a 30-second maximum utterance
+duration, covering 2694/2703 development utterances and 2611/2620 test
+utterances. A strict 60-second re-evaluation was attempted for the full split
+but the wav2vec 2.0 run became unexpectedly slow, so it was stopped and the
+high-coverage evaluation was retained. The log-mel run has WER/CER of 1.000
+under both limits. The reported results should therefore be interpreted as a
+high-coverage low-resource comparison rather than as a full LibriSpeech
+benchmark submission.
+
+\section{Results}
+
+\input{../results/report_tables.tex}
+
+The log-mel baseline collapses to empty or near-empty hypotheses, producing
+1.000 WER and CER. The final layer of frozen wav2vec 2.0 is better at the
+character level, but its word-level performance remains weak. The layer
+ablation is important: changing only the wav2vec 2.0 representation from the
+final layer to layer 6 improves test WER from 0.985 to 0.667 and test CER from
+0.596 to 0.262. HuBERT base is the strongest main SSL model, reaching 0.662
+test WER and 0.236 test CER.
+
+These results support the central claim that pretrained speech SSL
+representations are useful in low-resource ASR, but they also show that the
+choice of hidden layer can matter as much as the choice between SSL model
+families under frozen-encoder CTC training. The result is also a useful
+negative finding: using a pretrained encoder does not automatically solve the
+task. The final wav2vec 2.0 layer remains close to the failing baseline in WER,
+which suggests that frozen final-layer representations may be poorly matched
+to a very small character CTC head without fine-tuning or an auxiliary language
+model.
+
+\section{Error Analysis}
+
+The worst log-mel errors are deletions: the model often emits an empty
+hypothesis for complete reference sentences. This indicates that the small
+baseline learns the CTC blank-dominant solution under one hour of supervision.
+
+The SSL systems make more interpretable errors. Common HuBERT failure cases
+include substitutions on names or rare words, such as ``stephanos dedalos''
+being recognized as a phonetically similar but misspelled phrase, and
+deletions in short utterances such as ``squeak squeak''. Many errors preserve
+some phonetic structure but miss exact spelling and word boundaries. The
+wav2vec 2.0 layer-6 system shows similar substitutions and deletions, while the
+final-layer wav2vec 2.0 system has substantially more broad word-level errors.
+The pattern is consistent with a model that has learned useful phonetic
+structure but still lacks robust lexical and word-boundary modeling. This is
+expected for greedy character CTC decoding without a language model.
+
+\section{Limitations}
+
+The study is intentionally scoped to continuous SSL hidden states. It does not
+measure discrete-unit token rate, bitrate, or codebook size, because no
+quantizer is part of the implemented ASR system. The comparison is also limited
+to frozen encoders and one hour of labeled training data. Fine-tuning the SSL
+encoder, adding a word-piece decoder, or using an external language model would
+be natural next steps, but those changes would test different hypotheses from
+the representation-focused comparison reported here.
+
+\section{Reproducibility}
+
+The submission includes the source code, configs, generated manifests, metrics,
+prediction CSV files, error examples, and report source. The main commands are
+listed in \texttt{README.md} and \texttt{REPRODUCIBILITY.md}. The final
+experiment plan is \texttt{configs/experiment\_plan.yaml}. The measured
+metrics are stored under the \texttt{outputs} directory.
+
+\section{Conclusion}
+
+This project implements a complete low-resource SSL ASR pipeline. It satisfies
+the ASR task requirement, uses pretrained SSL representations, reports WER and
+CER, includes a conventional baseline, compares wav2vec 2.0 and HuBERT, and
+adds a clean hidden-layer ablation. The strongest result comes from HuBERT
+base, while the wav2vec 2.0 layer ablation shows that intermediate
+representations can be much more useful than the final layer for frozen CTC
+training with only one hour of labeled speech.
+
+\bibliographystyle{IEEEbib}
+\bibliography{refs}
+
+\end{document}

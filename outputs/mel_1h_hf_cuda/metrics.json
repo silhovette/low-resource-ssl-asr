@@ -1,0 +1,69 @@
+{
+  "run_name": "mel_1h_hf_cuda",
+  "best_dev_wer": 1.0,
+  "best_dev_cer": 1.0,
+  "test_wer": 1.0,
+  "test_cer": 1.0,
+  "dev_rtf": 4.3241332163913516e-05,
+  "test_rtf": 4.139687968260892e-05,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 9.247549660065594,
+      "dev_wer": 1.0,
+      "dev_cer": 1.0,
+      "dev_rtf": 2.6101995045892267e-05
+    },
+    {
+      "epoch": 2,
+      "train_loss": 3.1054168027990006,
+      "dev_wer": 1.0,
+      "dev_cer": 1.0,
+      "dev_rtf": 2.5338953066930928e-05
+    },
+    {
+      "epoch": 3,
+      "train_loss": 2.934546982540804,
+      "dev_wer": 1.0,
+      "dev_cer": 1.0,
+      "dev_rtf": 2.4758423408466727e-05
+    },
+    {
+      "epoch": 4,
+      "train_loss": 2.902438766816083,
+      "dev_wer": 1.0,
+      "dev_cer": 1.0,
+      "dev_rtf": 4.991463014874687e-05
+    },
+    {
+      "epoch": 5,
+      "train_loss": 2.892563721712898,
+      "dev_wer": 1.0,
+      "dev_cer": 1.0,
+      "dev_rtf": 6.24625097651529e-05
+    },
+    {
+      "epoch": 6,
+      "train_loss": 2.8877096386516796,
+      "dev_wer": 1.0,
+      "dev_cer": 1.0,
+      "dev_rtf": 6.346663965621304e-05
+    },
+    {
+      "epoch": 7,
+      "train_loss": 2.8881020195343914,
+      "dev_wer": 1.0,
+      "dev_cer": 1.0,
+      "dev_rtf": 5.926160205996588e-05
+    },
+    {
+      "epoch": 8,
+      "train_loss": 2.886032882858725,
+      "dev_wer": 1.0,
+      "dev_cer": 1.0,
+      "dev_rtf": 5.74152634954369e-05
+    }
+  ],
+  "dev_wer": 1.0,
+  "dev_cer": 1.0
+}

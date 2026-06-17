@@ -1,0 +1,41 @@
+run_name,id,ref,hyp,wer,cer
+hubert_1h_frozen_hf_cuda,672-122797-0049,squeak squeak,s cek s cqek,2.0,0.5
+hubert_1h_frozen_hf_cuda,2094-142345-0016,spinning indeed,spiing in ded,1.5,0.21428571428571427
+hubert_1h_frozen_hf_cuda,3575-170457-0016,farewell madam,ere wel madm,1.5,0.3076923076923077
+hubert_1h_frozen_hf_cuda,5142-36377-0011,mister jago is an american philip,ist e y goas in a mar and filup,1.5,0.42857142857142855
+hubert_1h_frozen_hf_cuda,1089-134691-0024,stephanos dedalos,stdeffenos det lse,1.5,0.5
+hubert_1h_frozen_hf_cuda,237-134500-0001,marie sighed,moe re sd,1.5,0.6363636363636364
+hubert_1h_frozen_hf_cuda,8463-294825-0011,he's swiftly punished,hese s wifly punihd,1.3333333333333333,0.2631578947368421
+hubert_1h_frozen_hf_cuda,5105-28241-0010,ocean reigned supreme,ohian rame s uprame,1.3333333333333333,0.42105263157894735
+hubert_1h_frozen_hf_cuda,3729-6852-0025,is there not a meridian everywhere,is ther nott a m ar riy an every waer,1.3333333333333333,0.27586206896551724
+hubert_1h_frozen_hf_cuda,4446-2275-0045,we've tortured each other enough for tonight,we h torchured eth there a nuffor to night,1.2857142857142858,0.3157894736842105
+mel_1h_hf_cuda,6930-75918-0000,concord returned to its place amidst the tents,,1.0,1.0
+mel_1h_hf_cuda,6930-75918-0001,the english forwarded to the french baskets of flowers of which they had made a plentiful provision to greet the arrival of the young princess the french in return invited the english to a supper which was to be given the next day,,1.0,1.0
+mel_1h_hf_cuda,6930-75918-0002,congratulations were poured in upon the princess everywhere during her journey,,1.0,1.0
+mel_1h_hf_cuda,6930-75918-0003,from the respect paid her on all sides she seemed like a queen and from the adoration with which she was treated by two or three she appeared an object of worship the queen mother gave the french the most affectionate reception france was her native country and she had suffered too much unhappiness in england for england to have made her forget france,,1.0,1.0
+mel_1h_hf_cuda,6930-75918-0004,she taught her daughter then by her own affection for it that love for a country where they had both been hospitably received and where a brilliant future opened before them,,1.0,1.0
+mel_1h_hf_cuda,6930-75918-0005,the count had thrown himself back on his seat leaning his shoulders against the partition of the tent and remained thus his face buried in his hands with heaving chest and restless limbs,,1.0,1.0
+mel_1h_hf_cuda,6930-75918-0006,this has indeed been a harassing day continued the young man his eyes fixed upon his friend,,1.0,1.0
+mel_1h_hf_cuda,6930-75918-0007,you will be frank with me i always am,,1.0,1.0
+mel_1h_hf_cuda,6930-75918-0008,can you imagine why buckingham has been so violent i suspect,,1.0,1.0
+mel_1h_hf_cuda,6930-75918-0009,it is you who are mistaken raoul i have read his distress in his eyes in his every gesture and action the whole day,,1.0,1.0
+wav2vec2_1h_frozen_hf_cuda,1995-1836-0009,but cresswell added significantly capacity differs enormously between races,bt swate se g ni int lo psa d dfs in nomas be tomn w sss,1.7777777777777777,0.6119402985074627
+wav2vec2_1h_frozen_hf_cuda,8463-294828-0022,we're leaving on the abraham lincoln,w levn an e i ber haom ln cant,1.5,0.5806451612903226
+wav2vec2_1h_frozen_hf_cuda,1089-134691-0018,again again,h gnha gn,1.5,0.6
+wav2vec2_1h_frozen_hf_cuda,61-70968-0038,robin fitzooth,rohon fit so,1.5,0.46153846153846156
+wav2vec2_1h_frozen_hf_cuda,237-134500-0025,oh emil,ol i ol,1.5,0.6666666666666666
+wav2vec2_1h_frozen_hf_cuda,4507-16021-0027,phoenician very good,ei nsonn vr cd,1.3333333333333333,0.7222222222222222
+wav2vec2_1h_frozen_hf_cuda,61-70970-0040,they regained their apartment apparently without disturbing the household of gamewell,t n r m d ply w s tut tr i sldto n wl,1.2727272727272727,0.7466666666666667
+wav2vec2_1h_frozen_hf_cuda,8463-294828-0005,conseil was my manservant,cs wss m an vn,1.25,0.5909090909090909
+wav2vec2_1h_frozen_hf_cuda,7021-79759-0001,that is comparatively nothing,tt somprd o ln nhn,1.25,0.5769230769230769
+wav2vec2_1h_frozen_hf_cuda,4507-16021-0007,slang makes one shudder,ssing mk c wn su,1.25,0.6
+wav2vec2_1h_layer6_hf_cuda,1089-134691-0018,again again,a n a n,2.0,0.6
+wav2vec2_1h_layer6_hf_cuda,260-123286-0020,tuesday august eighteenth,twos ta agst eight tint,1.6666666666666667,0.391304347826087
+wav2vec2_1h_layer6_hf_cuda,8463-294825-0000,it's almost beyond conjecture,it st be nd cen eckere,1.5,0.46153846153846156
+wav2vec2_1h_layer6_hf_cuda,237-134500-0001,marie sighed,m re d,1.5,0.6363636363636364
+wav2vec2_1h_layer6_hf_cuda,237-134500-0025,oh emil,o a meal,1.5,0.6666666666666666
+wav2vec2_1h_layer6_hf_cuda,237-134493-0007,alexandra lets you sleep late,d exsnd re l ea yus lepplat,1.4,0.36
+wav2vec2_1h_layer6_hf_cuda,8555-284449-0014,the former boolooroo groaned,thae fnr be e grn,1.25,0.68
+wav2vec2_1h_layer6_hf_cuda,5105-28233-0006,no cathedral not even burgos itself could vie with the church at montmartre,now ca tedral n oat ev em brgos it self could v wit the cr it mot martr,1.2307692307692308,0.23809523809523808
+wav2vec2_1h_layer6_hf_cuda,1995-1836-0009,but cresswell added significantly capacity differs enormously between races,butcres wel adted sugnificently copasit id difs innomusl be twen rces,1.2222222222222223,0.2835820895522388
+wav2vec2_1h_layer6_hf_cuda,6930-81414-0002,onward said a distant voice,n wrd sid ad distent vose,1.2,0.30434782608695654

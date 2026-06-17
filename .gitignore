@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.venv_cuda/
+/data/.hf_cache/
+/data/hf_librispeech/
+*.pt
+*.ckpt
+*.log

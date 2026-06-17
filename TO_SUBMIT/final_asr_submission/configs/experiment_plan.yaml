@@ -1,0 +1,5 @@
+runs:
+  - configs/mel_1h_hf_cuda.yaml
+  - configs/wav2vec2_1h_frozen_hf_cuda.yaml
+  - configs/hubert_1h_frozen_hf_cuda.yaml
+  - configs/wav2vec2_1h_layer6_hf_cuda.yaml
