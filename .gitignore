@@ -8,3 +8,9 @@ __pycache__/
 *.pt
 *.ckpt
 *.log
+*.aux
+*.out
+*.synctex.gz
+*.bbl
+
+

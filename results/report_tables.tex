@@ -1,15 +1,16 @@
 \begin{table}[t]
 \centering
 \small
-\caption{Low-resource ASR performance using 1 hour of LibriSpeech train-clean-100.}
-\begin{tabular}{lccc}
+\caption{Low-resource ASR performance using 1 hour of LibriSpeech \texttt{train-clean-100}. All SSL encoders are frozen; only the CTC head is trained. RTF measured on an RTX 4060 Laptop GPU.}
+\label{tab:main}
+\begin{tabular}{lcccccc}
 \toprule
-System & Dev WER & Test WER & Test CER \\
+System & Dev WER $\downarrow$ & Dev CER $\downarrow$ & Test WER $\downarrow$ & Test CER $\downarrow$ & RTF $\downarrow$ & \#Params \\
 \midrule
-HuBERT last & 0.656 & 0.662 & 0.236 \\
-Log-mel & 1.000 & 1.000 & 1.000 \\
-wav2vec2 last & 0.986 & 0.985 & 0.596 \\
-wav2vec2 layer 6 & 0.659 & 0.667 & 0.262 \\
+Log-mel (baseline)       & 1.000 & 1.000 & 1.000 & 1.000 & $4.1\times10^{-5}$ & 0.33\,M \\
+wav2vec2 last            & 0.986 & 0.600 & 0.985 & 0.596 & $4.3\times10^{-3}$ & 95.6\,M \\
+wav2vec2 layer 6         & 0.659 & 0.255 & 0.667 & 0.262 & $4.2\times10^{-3}$ & 95.6\,M \\
+\textbf{HuBERT last}     & \textbf{0.656} & \textbf{0.232} & \textbf{0.662} & \textbf{0.236} & $4.4\times10^{-3}$ & 95.0\,M \\
 \bottomrule
 \end{tabular}
 \end{table}
