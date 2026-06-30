@@ -99,14 +99,21 @@ fig.savefig(OUT / "wer_cer_bars.pdf", bbox_inches="tight")
 plt.close(fig)
 
 # ============================================================
-# Figure 3: Error type breakdown (subs / dels / ins)
+# Figure 3: Error type breakdown (subs / dels / ins) — donut + legend
 # ============================================================
 from src.metrics import aggregate_error_stats
 
-fig, axes = plt.subplots(1, 3, figsize=(5.5, 2.2))
+# Only the three SSL systems (skip log-mel since it's all deletions)
+ssl_systems = {k: v for k, v in SYSTEMS.items() if k != "mel_1h_hf_cuda"}
+ssl_labels = [v[0] for v in ssl_systems.values()]
+ssl_colors_list = [v[1] for v in ssl_systems.values()]
+
+fig, axes = plt.subplots(1, 3, figsize=(6.2, 2.6))
+wedge_colors = ["#d62728", "#ff7f0e", "#1f77b4", "#2ca02c"]
+cat_names = ["Substitutions", "Deletions", "Insertions", "Correct"]
 error_data = {}
 
-for key, (label, color, _) in SYSTEMS.items():
+for key, (label, color, _) in ssl_systems.items():
     preds = list(csv.DictReader(open(f"outputs/{key}/test_predictions.csv", encoding="utf-8")))
     total_subs = total_dels = total_ins = total_correct = total_ref = 0
     for row in preds:
@@ -118,20 +125,37 @@ for key, (label, color, _) in SYSTEMS.items():
         "subs": total_subs, "dels": total_dels, "ins": total_ins, "correct": total_correct
     }
 
-for ax, (label, color) in zip(axes, zip(LABELS, COLORS)):
+for ax, (label, color) in zip(axes, zip(ssl_labels, ssl_colors_list)):
     d = error_data[label]
     total = d["subs"] + d["dels"] + d["ins"] + d["correct"]
     sizes = [d["subs"]/total, d["dels"]/total, d["ins"]/total, d["correct"]/total]
-    wedges, texts, autotexts = ax.pie(
-        sizes, labels=["Sub", "Del", "Ins", "Corr"],
-        colors=["#d62728", "#ff7f0e", "#1f77b4", "#2ca02c"],
-        autopct="%1.0f%%", startangle=90, textprops={"fontsize": 7},
-        wedgeprops={"linewidth": 0.3, "edgecolor": "white"},
-    )
-    ax.set_title(label, fontsize=8)
 
-fig.suptitle("Word-Level Error Breakdown per System", fontsize=9, y=1.01)
-fig.tight_layout()
+    def make_autopct(sizes):
+        def autopct(pct):
+            return f"{pct:.0f}%" if pct >= 5 else ""
+        return autopct
+
+    wedges, texts, autotexts = ax.pie(
+        sizes,
+        labels=None,           # no direct wedge labels — use legend instead
+        colors=wedge_colors,
+        autopct=make_autopct(sizes),
+        pctdistance=0.70,
+        startangle=90,
+        textprops={"fontsize": 8, "fontweight": "bold"},
+        wedgeprops={"linewidth": 0.5, "edgecolor": "white"},
+    )
+    ax.set_title(label, fontsize=9, fontweight="bold", color=color)
+
+# Shared legend below the three pies, one row
+fig.legend(
+    wedges, cat_names,
+    loc="lower center", ncol=4,
+    fontsize=8, framealpha=0.7,
+    bbox_to_anchor=(0.5, -0.02),
+)
+fig.suptitle("Word-Level Error Breakdown per System", fontsize=10, y=1.02)
+fig.tight_layout(rect=[0, 0.08, 1, 1])
 fig.savefig(OUT / "error_breakdown.pdf", bbox_inches="tight")
 plt.close(fig)
 

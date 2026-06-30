@@ -1,21 +1,23 @@
+% ICASSP 2026 Paper: Low-Resource ASR with Pretrained SSL Representations
+% Uses spconf.sty (ICASSP style) and IEEEbib.bst
+% --------------------------------------------------------------------------
 \documentclass{article}
-
-\usepackage[final]{neurips_2025}
-\usepackage{amsmath,amsfonts,graphicx,booktabs,url,xspace,hyperref}
-\usepackage{microtype}
-\usepackage{subcaption}
-
-\title{Low-Resource ASR with Pretrained Speech Self-Supervised Representations}
-
-\author{%
-  \begin{tabular}{c@{\hspace{1.2cm}}c@{\hspace{1.2cm}}c}
-    Yuhua Luo & Haomin Hu & Yuecheng Han \\[2pt]
-    \small 524531910035 & \small 524531910040 & \small 524531910029
-  \end{tabular}
-}
-\neuripsbibstyle
+\usepackage{spconf,amsmath,graphicx,hyperref,booktabs,xspace}
 
 \newcommand{\figdir}{figures}
+
+% Title. ICASSP requires all-capitals, bold-face.
+% ----------------------------------------------------------------
+\title{LOW-RESOURCE ASR WITH PRETRAINED SPEECH SELF-SUPERVISED REPRESENTATIONS}
+
+% Single address — all authors share the same affiliation.
+% ----------------------------------------------------------------
+\name{\begin{tabular}{c@{\hspace{1.2cm}}c@{\hspace{1.2cm}}c}
+Yuhua Luo & Haomin Hu & Yuecheng Han \\[2pt]
+\upshape\small 524531910035 & \upshape\small 524531910040 & \upshape\small 524531910029
+\end{tabular}}
+\address{Shanghai Jiao Tong University\\
+Shanghai, China}
 
 \begin{document}
 
@@ -28,14 +30,18 @@ a LibriSpeech pipeline with transcript normalization, JSONL manifests,
 character-level CTC training, greedy decoding, WER/CER evaluation, and
 qualitative error analysis. Using approximately one hour from LibriSpeech
 \texttt{train-clean-100}, we compare a small log-mel CTC baseline with
-frozen wavvec~2.0 and HuBERT encoders followed by a lightweight CTC head.
-A focused layer ablation shows that an intermediate wavvec~2.0 layer is
+frozen wav2vec~2.0 and HuBERT encoders followed by a lightweight CTC head.
+A focused layer ablation shows that an intermediate wav2vec~2.0 layer is
 substantially stronger than the final layer under the frozen-encoder setting.
 The best system---HuBERT base with a frozen encoder---reaches 0.662~WER and
 0.236~CER on the evaluated \texttt{test-clean} set. These findings confirm
 that pretrained SSL representations are useful in low-resource ASR, and that
 the choice of hidden layer can matter as much as the choice of SSL model family.
 \end{abstract}
+
+\begin{keywords}
+Low-resource ASR, self-supervised learning, wav2vec~2.0, HuBERT, CTC
+\end{keywords}
 
 % ===========================================================================
 \section{Introduction}
@@ -44,7 +50,7 @@ the choice of hidden layer can matter as much as the choice of SSL model family.
 Low-resource automatic speech recognition (ASR) is difficult because the model
 must learn an acoustic-to-text mapping from limited paired speech and
 transcripts. In conventional supervised ASR, thousands of hours of labeled
-speech are used to train end-to-end models~\citep{panayotov2015librispeech}.
+speech are used to train end-to-end models~\cite{panayotov2015librispeech}.
 When only a small amount of labeled data is available---one hour or less---the
 model lacks sufficient supervision to learn robust acoustic-phonetic mappings,
 leading to poor generalization.
@@ -52,21 +58,21 @@ leading to poor generalization.
 Speech self-supervised learning (SSL) addresses this limitation by pretraining
 acoustic encoders on large unlabeled audio corpora, producing representations
 that capture phonetic and lexical structure without requiring transcripts.
-Models such as wavvec~2.0~\citep{baevski2020wav2vec} and
-HuBERT~\citep{hsu2021hubert} learn via contrastive or masked-prediction
+Models such as wav2vec~2.0~\cite{baevski2020wav2vec} and
+HuBERT~\cite{hsu2021hubert} learn via contrastive or masked-prediction
 objectives on raw audio, and their frozen hidden states have been shown to
 benefit downstream tasks including phoneme recognition, keyword spotting, and
-ASR~\citep{yang2021superb}.
+ASR~\cite{yang2021superb}.
 
 This project follows that paradigm and builds an English ASR system centered on
-pretrained wavvec~2.0 and HuBERT representations. The study asks two main
+pretrained wav2vec~2.0 and HuBERT representations. The study asks two main
 questions: (1)~Do pretrained SSL hidden states help in a one-GPU, low-resource
 LibriSpeech setting where only one hour of labeled speech is available?
 (2)~Does the choice of SSL model and hidden layer matter when the downstream
 model is deliberately small and the encoder is kept frozen?
 
 Our contributions are: (i)~a reproducible end-to-end low-resource ASR pipeline,
-(ii)~a controlled comparison of wavvec~2.0 and HuBERT against a non-pretrained
+(ii)~a controlled comparison of wav2vec~2.0 and HuBERT against a non-pretrained
 log-mel baseline, and~(iii)~a clean layer ablation demonstrating that
 intermediate SSL layers can be substantially more informative for CTC decoding
 than the final layer. All experiments run on a single consumer GPU (RTX~4060,
@@ -78,24 +84,24 @@ than the final layer. All experiments run on a single consumer GPU (RTX~4060,
 
 \subsection{System Overview}
 
-The overall system architecture is shown in Figure~\ref{fig:architecture}. The
+The overall system architecture is shown in Fig.~\ref{fig:architecture}. The
 pipeline takes raw 16~kHz audio waveforms, passes them through a frozen SSL
 encoder to extract frame-level hidden states, projects these to character logits
 via a lightweight CTC head, and applies greedy CTC decoding to produce the
 transcript. For the log-mel baseline, the SSL encoder is replaced with a small
 feed-forward network over 80-dimensional log-mel filterbank features.
 
-\begin{figure}[htbp]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{\figdir/architecture.pdf}
 \caption{System architecture. Raw audio passes through a frozen SSL encoder
-(wavvec~2.0 or HuBERT base), a CTC projection head, and greedy CTC decoding.}
+(wav2vec~2.0 or HuBERT base), a CTC projection head, and greedy CTC decoding.}
 \label{fig:architecture}
-\end{figure}
+\end{figure*}
 
 \subsection{Data and Normalization}
 
-All experiments use LibriSpeech~\citep{panayotov2015librispeech}, a
+All experiments use LibriSpeech~\cite{panayotov2015librispeech}, a
 public-domain English read-speech corpus. To avoid unreliable long downloads
 from OpenSLR, the data preparation script reads the Hugging Face Parquet mirror
 (\texttt{openslr/librispeech\_asr}), materializes
@@ -123,8 +129,8 @@ pretrained speech knowledge; it serves as the non-SSL control.
 
 The SSL systems use Hugging Face Transformers encoders with a compact CTC
 projection head. We evaluate two pretrained models:
-\texttt{facebook/wav2vec2-base} (95.6\,M~parameters)~\citep{baevski2020wav2vec}
-and \texttt{facebook/hubert-base-ls960} (95.0\,M~parameters)~\citep{hsu2021hubert}.
+\texttt{facebook/wav2vec2-base} (95.6\,M~parameters)~\cite{baevski2020wav2vec}
+and \texttt{facebook/hubert-base-ls960} (95.0\,M~parameters)~\cite{hsu2021hubert}.
 Both accept 16~kHz raw waveforms and output 768-dimensional hidden states with
 a 20~ms frame interval (320$\times$ CNN subsampling). The CTC projection head
 is Linear(768~$\to$~768)~$\to$~ReLU~$\to$~Dropout(0.1)~$\to$~Linear(768~$\to$~$V$),
@@ -134,7 +140,7 @@ In all SSL runs, the encoder is {\bfseries frozen} and only the projection head
 is trained ($\sim$1.2\,M~trainable parameters). This keeps the experiment
 feasible on an 8\,GB GPU and isolates the value of pretrained representations.
 
-For layer analysis, we compare wavvec~2.0 final-layer (layer~12) features
+For layer analysis, we compare wav2vec~2.0 final-layer (layer~12) features
 against intermediate-layer (layer~6) features, holding all other
 variables---dataset, optimizer, frozen encoder, CTC head, and decoding
 procedure---constant. This is a single-variable ablation.
@@ -142,12 +148,12 @@ procedure---constant. This is a single-variable ablation.
 \subsection{Experimental Controls}
 
 All systems share the same text normalization, character vocabulary, CTC
-objective~\citep{graves2006ctc}, and greedy CTC decoding. No external language
+objective~\cite{graves2006ctc}, and greedy CTC decoding. No external language
 model, beam search, or weight averaging is used. This makes the comparison
 conservative: an LM would improve absolute WER but would obscure how much
 information the acoustic representation itself contributes. The log-mel system
-is the non-pretrained control; the HuBERT and wavvec~2.0 systems test the
-effect of SSL pretraining; and the wavvec~2.0 layer-6 run isolates the
+is the non-pretrained control; the HuBERT and wav2vec~2.0 systems test the
+effect of SSL pretraining; and the wav2vec~2.0 layer-6 run isolates the
 hidden-layer choice.
 
 % ===========================================================================
@@ -159,7 +165,7 @@ Laptop GPU (8\,GB VRAM). Training hyperparameters are summarized in
 Table~\ref{tab:configs}. All runs used the AdamW optimizer, gradient clipping
 at~1.0, and fixed random seed~1337 with no stochastic data augmentation.
 
-\begin{table}[htbp]
+\begin{table*}[t]
 \centering
 \caption{Training hyperparameters.}
 \label{tab:configs}
@@ -176,7 +182,7 @@ Max eval audio  & 30\,s & 30\,s & 30\,s & 30\,s \\
 Trainable params & 0.33\,M & 1.2\,M & 1.2\,M & 1.2\,M \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 WER and CER, computed via Levenshtein alignment at the word and character
 level, are the primary metrics. Real-time factor---inference wall time divided
@@ -192,28 +198,28 @@ uses a 30-second maximum utterance duration, covering 2694/2703 dev and
 \subsection{Main Results}
 
 Table~\ref{tab:main} presents the primary results.
-Figure~\ref{fig:training} shows training dynamics, and
-Figure~\ref{fig:bars} provides a visual comparison of test-set error rates.
+Fig.~\ref{fig:training} shows training dynamics, and
+Fig.~\ref{fig:bars} provides a visual comparison of test-set error rates.
 
-\begin{figure}[htbp]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{\figdir/training_curves.pdf}
 \caption{Training dynamics. (Left)~CTC training loss per epoch.
-(Right)~Development WER per epoch. HuBERT and wavvec~2.0 layer~6 converge
+(Right)~Development WER per epoch. HuBERT and wav2vec~2.0 layer~6 converge
 rapidly and reach substantially lower dev WER.}
 \label{fig:training}
-\end{figure}
+\end{figure*}
 
 \input{../results/report_tables.tex}
 
-\begin{figure}[htbp]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=0.92\textwidth]{\figdir/wer_cer_bars.pdf}
 \caption{Test-set WER and CER across all systems. The log-mel baseline collapses
 to empty hypotheses. HuBERT achieves the lowest error rates, followed closely by
-wavvec~2.0 layer~6.}
+wav2vec~2.0 layer~6.}
 \label{fig:bars}
-\end{figure}
+\end{figure*}
 
 The log-mel baseline converges to empty or near-empty hypotheses for every
 utterance, yielding 1.000~WER and CER. This is the CTC blank-dominance failure
@@ -222,7 +228,7 @@ meaningful acoustic-phonetic mappings and collapses to predicting blank at every
 frame. The training loss decreases (9.2~$\to$~2.9) but reflects the model
 learning to output blank rather than speech content.
 
-The final layer of frozen wavvec~2.0 is somewhat better at the character level
+The final layer of frozen wav2vec~2.0 is somewhat better at the character level
 (CER~0.596) but word-level performance stays near the baseline (WER~0.985).
 Final-layer representations optimized for contrastive discrimination appear
 poorly aligned with the needs of a small character CTC head.
@@ -230,20 +236,20 @@ poorly aligned with the needs of a small character CTC head.
 \subsection{Layer Ablation}
 
 The most striking result is the layer ablation. As shown in
-Figure~\ref{fig:layer}, changing only the wavvec~2.0 representation from the
+Fig.~\ref{fig:layer}, changing only the wav2vec~2.0 representation from the
 final layer to layer~6 improves test WER from 0.985 to 0.667 ($\Delta =
 -0.318$) and test CER from 0.596 to 0.262 ($\Delta = -0.334$)---with all other
 factors held constant.
 
-\begin{figure}[htbp]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=0.85\textwidth]{\figdir/layer_ablation.pdf}
-\caption{Layer ablation. Switching from wavvec~2.0 final layer to layer~6
+\caption{Layer ablation. Switching from wav2vec~2.0 final layer to layer~6
 reduces WER by 0.318 and CER by 0.334, holding all other variables fixed.}
 \label{fig:layer}
-\end{figure}
+\end{figure*}
 
-This aligns with prior work~\citep{pasad2021layer} showing that intermediate SSL
+This aligns with prior work~\cite{pasad2021layer} showing that intermediate SSL
 layers encode richer phonetic information, while final layers become specialized
 to the pretraining objective. Under frozen-encoder CTC training with limited
 data, the phonetic content preserved in middle layers is substantially more
@@ -252,28 +258,28 @@ useful than the abstract final-layer representations.
 \subsection{Model Comparison}
 
 HuBERT base achieves the best overall performance (0.662~test WER,
-0.236~test CER), narrowly ahead of wavvec~2.0 layer~6 (0.667~test WER,
+0.236~test CER), narrowly ahead of wav2vec~2.0 layer~6 (0.667~test WER,
 0.262~test CER). The difference is modest ($\Delta$WER~=~0.005,
 $\Delta$CER~=~0.026), suggesting that within the frozen-encoder low-resource
 regime, the choice of hidden layer can matter as much as the choice between SSL
 model families. HuBERT's advantage is consistent with its design: the
 masked-prediction objective with clustered acoustic units appears to produce
 representations that transfer more readily to phoneme-level tasks than
-wavvec~2.0's contrastive objective.
+wav2vec~2.0's contrastive objective.
 
-Figure~\ref{fig:convergence} shows per-epoch development WER.
-HuBERT and wavvec~2.0 layer~6 converge rapidly; by epoch~2 they reach WER below
-0.75 and continue improving through epoch~5. The wavvec~2.0 final-layer system
+Fig.~\ref{fig:convergence} shows per-epoch development WER.
+HuBERT and wav2vec~2.0 layer~6 converge rapidly; by epoch~2 they reach WER below
+0.75 and continue improving through epoch~5. The wav2vec~2.0 final-layer system
 plateaus at much higher WER, and the log-mel baseline never leaves the
 1.000~WER region.
 
-\begin{figure}[htbp]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{\figdir/convergence_heatmap.pdf}
 \caption{Per-epoch development WER. Darker green = lower WER. HuBERT and
-wavvec~2.0 layer~6 converge quickly, reaching WER below 0.6 by epoch~5.}
+wav2vec~2.0 layer~6 converge quickly, reaching WER below 0.6 by epoch~5.}
 \label{fig:convergence}
-\end{figure}
+\end{figure*}
 
 \subsection{Inference Efficiency}
 
@@ -285,18 +291,18 @@ irrelevant given 100\% error.
 
 \subsection{Error Analysis}
 
-Figure~\ref{fig:errors} shows the distribution of word-level error types.
+Fig.~\ref{fig:errors} shows the distribution of word-level error types.
 The log-mel baseline exhibits near-total deletion: 99\% of reference words are
 absent from the hypothesis, confirming blank dominance.
 
-\begin{figure}[htbp]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{\figdir/error_breakdown.pdf}
 \caption{Word-level error type distribution. Substitutions dominate across SSL
 systems (39--52\%), followed by deletions (27--33\%). Insertions are infrequent
 (8--16\%). The log-mel system produces nearly all deletions.}
 \label{fig:errors}
-\end{figure}
+\end{figure*}
 
 Across SSL systems, substitutions account for the largest share (45--60\%),
 followed by deletions (30--40\%) and insertions (5--15\%). The
@@ -310,7 +316,7 @@ often preserve phonetic structure---for instance, ``stephanos dedalos'' becomes
 ``stdeffenos det lse''---but miss exact spelling. Short utterances and proper
 nouns are especially challenging without a language model.
 
-\begin{table}[htbp]
+\begin{table*}[t]
 \centering
 \caption{Representative error examples. HuBERT preserves phonetic structure but
 makes character errors. The log-mel baseline outputs empty strings.}
@@ -333,7 +339,7 @@ Reference & HuBERT Prediction & Log-mel \\
 \small\textit{(empty)} \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 % ===========================================================================
 \section{Discussion}
@@ -341,12 +347,12 @@ Reference & HuBERT Prediction & Log-mel \\
 
 \subsection{Why Does Layer Choice Matter So Much?}
 
-The sharp performance gap between wavvec~2.0 final and intermediate layers has
-a clear interpretation. Prior layer-wise analyses~\citep{pasad2021layer} show
+The sharp performance gap between wav2vec~2.0 final and intermediate layers has
+a clear interpretation. Prior layer-wise analyses~\cite{pasad2021layer} show
 that intermediate SSL layers (around 6--9 in a 12-layer model) encode phonetic
 and articulatory features most explicitly, while final layers become
 increasingly invariant to surface acoustic detail and specialized toward the
-pretraining task. In wavvec~2.0, the pretraining task is contrastive: the model
+pretraining task. In wav2vec~2.0, the pretraining task is contrastive: the model
 learns to distinguish true quantized representations from distractors. Final
 representations optimized for this objective may discard precisely the
 fine-grained phonetic information a character CTC decoder needs. Intermediate
@@ -380,7 +386,7 @@ encoders. Several extensions are beyond the current scope:
 \item \textbf{Language model:} No external LM, beam search, or shallow fusion is
   used. A 4-gram or neural LM would reduce WER, particularly for the
   substitution-heavy error profile observed in SSL systems.
-\item \textbf{Model diversity:} Only wavvec~2.0 base and HuBERT base are
+\item \textbf{Model diversity:} Only wav2vec~2.0 base and HuBERT base are
   compared. WavLM, XLS-R, or data2vec may exhibit different transfer properties.
 \item \textbf{Data scale:} Only the 1-hour point is evaluated. A systematic
   sweep over data quantities would reveal how the SSL vs.\ non-pretrained gap
@@ -415,10 +421,10 @@ four systems under a strict 1-hour labeled-data constraint. The key findings are
   baseline.} The log-mel baseline fails entirely (WER~=~1.000), while HuBERT
   reaches 0.662~WER despite a frozen encoder.
 \item \textbf{Hidden layer choice can matter as much as model family choice.}
-  Switching wavvec~2.0 from the final layer to layer~6 improves WER by 0.318
+  Switching wav2vec~2.0 from the final layer to layer~6 improves WER by 0.318
   absolute, nearly matching HuBERT.
 \item \textbf{HuBERT base provides the best frozen representations}
-  (0.662~test WER, 0.236~test CER), though the margin over wavvec~2.0 layer~6
+  (0.662~test WER, 0.236~test CER), though the margin over wav2vec~2.0 layer~6
   is small.
 \item \textbf{Error analysis reveals substitution-dominated errors} consistent
   with character CTC decoding without a language model. Phonetic structure is
@@ -430,8 +436,9 @@ low-resource ASR, and that representation selection---particularly the choice
 of hidden layer---is a critical design decision that can outweigh the choice of
 pretraining algorithm.
 
-
-
+% References use IEEE bibliography style
+% -------------------------------------------------------------------------
+\bibliographystyle{IEEEbib}
 \bibliography{refs}
 
 \end{document}

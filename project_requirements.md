@@ -54,3 +54,27 @@ ASR 方向以识别准确率为核心评价目标，主要指标包括：
 - 实验必须包含可量化评价指标。
 - 实验必须包含至少一个对比实验或消融实验。
 - 方法设计应体现一定的独立思考，可以在表征选择、离散化方式、模型结构、训练目标或系统组合方式上进行创新。
+
+## 参考资料
+
+以下资料仅作为数据集、baseline、工具包和实现流程的参考入口，不限定最终实现方案。
+1. https://www.openslr.org/12/
+2. https://keithito.com/LJ-Speech-Dataset/
+3. https://github.com/s3prl/s3prl
+4. https://github.com/espnet/espnet
+5. https://github.com/speechbrain/speechbrain
+6. https://huggingface.co/docs/transformers/en/model_doc/wav2vec2
+7. https://huggingface.co/docs/transformers/en/model_doc/hubert
+8. https://huggingface.co/docs/transformers/en/model_doc/wavlm
+9. https://github.com/sarulab-speech/UTMOSv2
+10. https://cmsworkshops.com/ICASSP2026/papers/paper_kit.php
+
+## 提交要求
+
+项目论文须按照 ICASSP 2026 官方 LaTeX 模板进行撰写，格式规范应与正式学术投稿保持一致。
+
+最终提交项目论文的 PDF 文件，以及可复现实验结果的代码等支撑材料。
+
+项目论文应重点呈现方法设计、实验设置、核心结果与分析结论。
+
+每小组提交一份即可，并在报告中备注好小组成员姓名、学号。
