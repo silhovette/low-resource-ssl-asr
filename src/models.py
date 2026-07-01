@@ -49,6 +49,64 @@ class SSLCTCModel(nn.Module):
             for p in self.encoder.parameters():
                 p.requires_grad = False
 
+    def _transformer_layers(self):
+        """Return the ModuleList of transformer encoder layers.
+
+        Works for wav2vec2, HuBERT, WavLM, and other similar HF models
+        where the structure is: model.encoder.layers (ModuleList).
+        """
+        # The HuggingFace AutoModel stores the transformer inside .encoder
+        if hasattr(self.encoder, "encoder") and hasattr(self.encoder.encoder, "layers"):
+            return self.encoder.encoder.layers
+        raise AttributeError(
+            f"Cannot locate transformer layers in {type(self.encoder).__name__}. "
+            f"Expected self.encoder.encoder.layers to be a ModuleList."
+        )
+
+    @property
+    def num_transformer_layers(self) -> int:
+        return len(self._transformer_layers())
+
+    def unfreeze_transformer_layers(self, num_layers: int):
+        """Unfreeze the top `num_layers` transformer encoder layers.
+
+        This is the key method for fine-tuning experiments.  After a frozen
+        warm-up, call ``model.unfreeze_transformer_layers(3)`` to make the top
+        3 layers trainable, then continue training with a lower learning rate.
+        """
+        layers = self._transformer_layers()
+        total = len(layers)
+        if num_layers > total:
+            raise ValueError(
+                f"Requested {num_layers} layers but model only has {total}"
+            )
+        unfrozen = 0
+        for i, layer in enumerate(layers):
+            if i >= total - num_layers:
+                for p in layer.parameters():
+                    p.requires_grad = True
+                unfrozen += 1
+        return unfrozen
+
+    def unfreeze_all(self):
+        """Unfreeze every parameter in the encoder (full fine-tuning)."""
+        for p in self.encoder.parameters():
+            p.requires_grad = True
+        return sum(1 for _ in self.encoder.parameters())
+
+    def freeze_all(self):
+        """Re-freeze every parameter in the encoder."""
+        for p in self.encoder.parameters():
+            p.requires_grad = False
+
+    @property
+    def trainable_param_count(self) -> int:
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
+    @property
+    def total_param_count(self) -> int:
+        return sum(p.numel() for p in self.parameters())
+
     def forward(self, input_values: torch.Tensor, attention_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
         needs_hidden_states = self.hidden_layer not in {"last", "-1"}
         out = self.encoder(

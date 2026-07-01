@@ -267,6 +267,39 @@ fig.tight_layout()
 fig.savefig(OUT / "convergence_heatmap.pdf", bbox_inches="tight")
 plt.close(fig)
 
-print(f"Generated 6 figures in {OUT}/")
+# ============================================================
+# Figure 7: Layer sweep — WER / CER vs. wav2vec2 layer index
+# ============================================================
+sweep_csv = Path("results/layer_sweep.csv")
+if sweep_csv.exists():
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(5.5, 2.4))
+
+    rows = list(csv.DictReader(sweep_csv.open()))
+    layers = [int(r["layer"]) for r in rows]
+    dev_wer = [float(r["dev_wer"]) for r in rows]
+    test_wer = [float(r["test_wer"]) for r in rows]
+    dev_cer = [float(r["dev_cer"]) for r in rows]
+    test_cer = [float(r["test_cer"]) for r in rows]
+
+    ax1.plot(layers, dev_wer, "o-", color="#d62728", label="Dev WER", markersize=6)
+    ax1.plot(layers, test_wer, "s--", color="#d62728", label="Test WER", markersize=6)
+    ax1.set_xlabel("wav2vec2 Layer"); ax1.set_ylabel("WER")
+    ax1.legend(fontsize=7); ax1.grid(alpha=0.3)
+    ax1.yaxis.set_major_formatter(mticker.PercentFormatter(1.0, decimals=0))
+    ax1.set_xticks(layers)
+
+    ax2.plot(layers, dev_cer, "o-", color="#1f77b4", label="Dev CER", markersize=6)
+    ax2.plot(layers, test_cer, "s--", color="#1f77b4", label="Test CER", markersize=6)
+    ax2.set_xlabel("wav2vec2 Layer"); ax2.set_ylabel("CER")
+    ax2.legend(fontsize=7); ax2.grid(alpha=0.3)
+    ax2.yaxis.set_major_formatter(mticker.PercentFormatter(1.0, decimals=0))
+    ax2.set_xticks(layers)
+
+    fig.suptitle("wav2vec2 Layer Sweep: WER / CER vs. Hidden Layer", fontsize=9)
+    fig.tight_layout()
+    fig.savefig(OUT / "layer_sweep.pdf", bbox_inches="tight")
+    plt.close(fig)
+
+print(f"Generated figures in {OUT}/")
 for f in sorted(OUT.glob("*.pdf")):
     print(f"  {f.name}  ({f.stat().st_size/1024:.0f} KB)")

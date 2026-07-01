@@ -29,11 +29,18 @@ def _latex_escape(text):
 DISPLAY_NAMES = {
     "hubert_asr_large": "HuBERT ASR",
     "hubert_1h_frozen_hf_cuda": "HuBERT last",
+    "hubert_1h_finetune6_hf_cuda": "HuBERT last (FT top-6)",
+    "hubert_1h_lm_hf_cuda": "HuBERT last + LM",
     "mel_1h_hf_cuda": "Log-mel",
     "pilot_mel_ctc": "Log-mel CTC",
     "wav2vec2_asr_base_10m": "wav2vec2 ASR (10m)",
     "wav2vec2_1h_frozen_hf_cuda": "wav2vec2 last",
+    "wav2vec2_1h_finetune6_hf_cuda": "wav2vec2 layer 6 (FT top-6)",
+    "wav2vec2_1h_layer0_hf_cuda": "wav2vec2 layer 0",
+    "wav2vec2_1h_layer3_hf_cuda": "wav2vec2 layer 3",
     "wav2vec2_1h_layer6_hf_cuda": "wav2vec2 layer 6",
+    "wav2vec2_1h_layer6_lm_hf_cuda": "wav2vec2 layer 6 + LM",
+    "wav2vec2_1h_layer9_hf_cuda": "wav2vec2 layer 9",
 }
 
 

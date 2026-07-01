@@ -12,10 +12,10 @@ from torch.utils.data import DataLoader
 import yaml
 
 from src.dataset import SpeechManifestDataset, collate_mel_batch, collate_ssl_batch
-from src.decoder import greedy_ctc_decode
+from src.decoder import ctc_beam_search_decode, greedy_ctc_decode
 from src.metrics import cer, wer
 from src.models import MelCTCModel, SSLCTCModel
-from src.trainer import ctc_loss_from_logits, evaluate_ctc, write_metrics
+from src.trainer import ctc_loss_from_logits, evaluate_ctc, train_one_epoch, train_with_finetune, write_metrics
 from src.utils import ensure_dir, read_jsonl, set_seed
 from src.vocab import build_vocab
 
@@ -94,6 +94,37 @@ def _save_predictions(model, loader, vocab, device, out_path, blank_id):
         writer.writerows(rows)
 
 
+def _save_predictions_lm(model, loader, vocab, device, out_path, blank_id, lm_path, beam_width, lm_alpha, lm_beta):
+    """Save predictions using LM-enhanced beam search (slower than greedy)."""
+    model.eval()
+    rows = []
+    with torch.no_grad():
+        for batch in loader:
+            if "input_values" in batch:
+                logits = model(batch["input_values"].to(device), batch["attention_mask"].to(device))
+            else:
+                logits = model(batch["features"].to(device), batch["feature_lengths"].to(device))
+            hyps = ctc_beam_search_decode(
+                logits, vocab, kenlm_path=lm_path,
+                beam_width=beam_width, alpha=lm_alpha, beta=lm_beta,
+                blank_id=blank_id,
+            )
+            for row, ref, hyp in zip(batch["rows"], batch["texts"], hyps):
+                rows.append(
+                    {
+                        "id": row["id"],
+                        "ref": ref,
+                        "hyp": hyp,
+                        "wer": wer(ref, hyp),
+                        "cer": cer(ref, hyp),
+                    }
+                )
+    with Path(out_path).open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["id", "ref", "hyp", "wer", "cer"])
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
@@ -125,49 +156,48 @@ def main() -> None:
     )
 
     train_cfg = config["training"]
-    optimizer = torch.optim.AdamW((p for p in model.parameters() if p.requires_grad), lr=float(train_cfg["learning_rate"]))
-    best_dev = float("inf")
     blank_id = int(config.get("decode", {}).get("blank_id", 0))
-    history = []
+    decode_cfg = config.get("decode", {})
 
-    for epoch in range(1, int(train_cfg["epochs"]) + 1):
-        model.train()
-        total_loss = 0.0
-        steps = 0
-        for batch in train_loader:
-            optimizer.zero_grad(set_to_none=True)
-            labels = batch["label_ids"].to(device)
-            target_lengths = batch["label_lengths"].to(device)
-            if "input_values" in batch:
-                logits = model(batch["input_values"].to(device), batch["attention_mask"].to(device))
-                raw_lengths = batch["input_lengths"].to(device)
-                if hasattr(model.encoder, "_get_feat_extract_output_lengths"):
-                    input_lengths = model.encoder._get_feat_extract_output_lengths(raw_lengths).to(device)
-                else:
-                    input_lengths = torch.full((logits.shape[0],), logits.shape[1], dtype=torch.long, device=device)
-            else:
-                logits = model(batch["features"].to(device), batch["feature_lengths"].to(device))
-                input_lengths = batch["feature_lengths"].to(device)
-            loss = ctc_loss_from_logits(logits, labels, input_lengths, target_lengths, blank_id=blank_id)
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), float(train_cfg.get("grad_clip", 1.0)))
-            optimizer.step()
-            total_loss += float(loss.item())
-            steps += 1
+    # ---- LM path for beam-search eval (optional) ----
+    lm_path = decode_cfg.get("lm_path", None)
+    lm_beam = int(decode_cfg.get("lm_beam_width", 50))
+    lm_alpha = float(decode_cfg.get("lm_alpha", 0.5))
+    lm_beta = float(decode_cfg.get("lm_beta", 1.5))
 
-        dev = evaluate_ctc(model, dev_loader, vocab, device, blank_id=blank_id)
-        row = {
-            "epoch": epoch,
-            "train_loss": total_loss / max(1, steps),
-            "dev_wer": dev.wer,
-            "dev_cer": dev.cer,
-            "dev_rtf": dev.rtf,
-        }
-        history.append(row)
-        print(row)
-        if dev.wer < best_dev:
-            best_dev = dev.wer
-            torch.save({"model": model.state_dict(), "vocab": vocab, "config": config}, out / "best.pt")
+    # ---- Two-phase fine-tuning or standard training ----
+    finetune_start = int(train_cfg.get("finetune_start_epoch", 0))
+    if finetune_start > 0:
+        print(f"[setup] two-phase training: freeze epochs 1–{finetune_start - 1}, "
+              f"unfreeze from epoch {finetune_start}")
+        history, best_dev = train_with_finetune(
+            model, train_loader, dev_loader, vocab, device, config, blank_id=blank_id,
+        )
+    else:
+        # Standard training (all params trainable or all frozen — no mid-training change)
+        optimizer = torch.optim.AdamW(
+            (p for p in model.parameters() if p.requires_grad),
+            lr=float(train_cfg["learning_rate"]),
+        )
+        best_dev = float("inf")
+        history = []
+        for epoch in range(1, int(train_cfg["epochs"]) + 1):
+            train_loss = train_one_epoch(
+                model, train_loader, optimizer, device,
+                blank_id=blank_id,
+                grad_clip=float(train_cfg.get("grad_clip", 1.0)),
+            )
+            dev = evaluate_ctc(model, dev_loader, vocab, device, blank_id=blank_id)
+            row = {
+                "epoch": epoch, "train_loss": train_loss,
+                "dev_wer": dev.wer, "dev_cer": dev.cer, "dev_rtf": dev.rtf,
+            }
+            history.append(row)
+            print(row)
+            if dev.wer < best_dev:
+                best_dev = dev.wer
+                torch.save({"model": model.state_dict(), "vocab": vocab, "config": config},
+                           out / "best.pt")
 
     ckpt = torch.load(out / "best.pt", map_location=device)
     model.load_state_dict(ckpt["model"])
@@ -183,6 +213,32 @@ def main() -> None:
         "test_rtf": test.rtf,
         "history": history,
     }
+
+    # ---- Optional LM eval (saves separate metrics & predictions) ----
+    if lm_path is not None:
+        from pathlib import Path as _Path
+        if _Path(lm_path).exists():
+            print(f"[lm-eval] beam={lm_beam} alpha={lm_alpha} beta={lm_beta}")
+            dev_lm = evaluate_ctc(model, dev_loader, vocab, device, blank_id=blank_id,
+                                  kenlm_path=lm_path, beam_width=lm_beam,
+                                  lm_alpha=lm_alpha, lm_beta=lm_beta)
+            test_lm = evaluate_ctc(model, test_loader, vocab, device, blank_id=blank_id,
+                                   kenlm_path=lm_path, beam_width=lm_beam,
+                                   lm_alpha=lm_alpha, lm_beta=lm_beta)
+            metrics["lm_dev_wer"] = dev_lm.wer
+            metrics["lm_dev_cer"] = dev_lm.cer
+            metrics["lm_test_wer"] = test_lm.wer
+            metrics["lm_test_cer"] = test_lm.cer
+            metrics["lm_dev_rtf"] = dev_lm.rtf
+            metrics["lm_test_rtf"] = test_lm.rtf
+            print(f"[lm-eval] test WER: greedy={test.wer:.3f} → +LM={test_lm.wer:.3f}")
+            # Save LM predictions
+            _save_predictions_lm(model, test_loader, vocab, device,
+                                 out / "test_predictions_lm.csv",
+                                 blank_id, lm_path, lm_beam, lm_alpha, lm_beta)
+        else:
+            print(f"[lm-eval] WARNING: LM path not found — {lm_path}")
+
     write_metrics(out / "metrics.json", metrics)
     _save_predictions(model, test_loader, vocab, device, out / "test_predictions.csv", blank_id)
     print(json.dumps(metrics, indent=2))
