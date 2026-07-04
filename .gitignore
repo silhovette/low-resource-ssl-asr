@@ -12,5 +12,11 @@ __pycache__/
 *.out
 *.synctex.gz
 *.bbl
+.DS_Store
+tmp/
+TO_SUBMIT/
+report_figures/
+*.tar
+*.tar.gz
 
 

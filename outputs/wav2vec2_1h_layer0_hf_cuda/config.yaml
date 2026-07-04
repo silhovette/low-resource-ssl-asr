@@ -1,0 +1,23 @@
+run_name: wav2vec2_1h_layer0_hf_cuda
+seed: 1337
+device: cuda
+train_manifest: data/manifests/train-clean-100_1h_hf.jsonl
+dev_manifest: data/manifests/dev-clean_hf.jsonl
+test_manifest: data/manifests/test-clean_hf.jsonl
+output_dir: outputs/wav2vec2_1h_layer0_hf_cuda
+model:
+  type: ssl_ctc
+  pretrained_name: facebook/wav2vec2-base
+  freeze_encoder: true
+  hidden_layer: '0'
+  dropout: 0.1
+training:
+  epochs: 5
+  batch_size: 2
+  learning_rate: 0.001
+  max_audio_seconds: 18
+  max_eval_audio_seconds: 30
+  grad_clip: 1.0
+  num_workers: 0
+decode:
+  blank_id: 0

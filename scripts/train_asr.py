@@ -171,7 +171,7 @@ def main() -> None:
         print(f"[setup] two-phase training: freeze epochs 1–{finetune_start - 1}, "
               f"unfreeze from epoch {finetune_start}")
         history, best_dev = train_with_finetune(
-            model, train_loader, dev_loader, vocab, device, config, blank_id=blank_id,
+            model, train_loader, dev_loader, vocab, device, config, out, blank_id=blank_id,
         )
     else:
         # Standard training (all params trainable or all frozen — no mid-training change)

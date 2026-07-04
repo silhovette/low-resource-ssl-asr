@@ -1,16 +1,20 @@
-\begin{table*}[t]
+\begin{table}[t]
 \centering
 \small
-\caption{Low-resource ASR performance using 1 hour of LibriSpeech \texttt{train-clean-100}. All SSL encoders are frozen; only the CTC head is trained. RTF measured on an RTX 4060 Laptop GPU.}
-\label{tab:main}
-\begin{tabular}{lcccccc}
+\caption{Low-resource ASR performance using 1 hour of LibriSpeech train-clean-100.}
+\begin{tabular}{lccc}
 \toprule
-System & Dev WER $\downarrow$ & Dev CER $\downarrow$ & Test WER $\downarrow$ & Test CER $\downarrow$ & RTF $\downarrow$ & \#Params \\
+System & Dev WER & Test WER & Test CER \\
 \midrule
-Log-mel (baseline)       & 1.000 & 1.000 & 1.000 & 1.000 & $4.1\times10^{-5}$ & 0.33\,M \\
-wav2vec2 last            & 0.986 & 0.600 & 0.985 & 0.596 & $4.3\times10^{-3}$ & 95.6\,M \\
-wav2vec2 layer 6         & 0.659 & 0.255 & 0.667 & 0.262 & $4.2\times10^{-3}$ & 95.6\,M \\
-\textbf{HuBERT last}     & \textbf{0.656} & \textbf{0.232} & \textbf{0.662} & \textbf{0.236} & $4.4\times10^{-3}$ & 95.0\,M \\
+HuBERT last (FT top-6) & 0.316 & 0.320 & 0.106 \\
+HuBERT last & 0.656 & 0.663 & 0.232 \\
+Log-mel & 1.000 & 1.000 & 1.000 \\
+wav2vec2 layer 6 (FT top-6) & 0.678 & 0.683 & 0.271 \\
+wav2vec2 last & 0.989 & 0.986 & 0.640 \\
+wav2vec2 layer 0 & 0.975 & 0.974 & 0.582 \\
+wav2vec2 layer 3 & 0.913 & 0.915 & 0.418 \\
+wav2vec2 layer 6 & 0.666 & 0.670 & 0.281 \\
+wav2vec2 layer 9 & 0.605 & 0.617 & 0.243 \\
 \bottomrule
 \end{tabular}
-\end{table*}
+\end{table}

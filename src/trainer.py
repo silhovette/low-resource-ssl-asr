@@ -132,7 +132,7 @@ def train_one_epoch(
 
 def train_with_finetune(
     model, train_loader, dev_loader, vocab, device,
-    config: dict, blank_id: int = 0,
+    config: dict, output_dir, blank_id: int = 0,
 ) -> dict:
     """Two-phase training: frozen warm-up → encoder fine-tuning.
 
@@ -147,6 +147,7 @@ def train_with_finetune(
 
     Returns a list of per-epoch metric dicts (``history``).
     """
+    from pathlib import Path as _Path
     epochs = int(config["training"]["epochs"])
     finetune_start = int(config["training"].get("finetune_start_epoch", epochs + 1))
     finetune_layers = int(config["training"].get("finetune_layers", 3))
@@ -194,4 +195,6 @@ def train_with_finetune(
         print(row)
         if dev.wer < best_dev:
             best_dev = dev.wer
+            torch.save({"model": model.state_dict(), "vocab": vocab, "config": config},
+                       _Path(output_dir) / "best.pt")
     return history, best_dev

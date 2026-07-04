@@ -75,19 +75,32 @@ low-resource-ssl-asr/
 │   ├── experiment_plan_hf_cuda_1h.yaml  # 同上（CUDA 版本）
 │   ├── mel_1h_hf_cuda.yaml       # Log-mel 基线配置
 │   ├── wav2vec2_1h_frozen_hf_cuda.yaml  # wav2vec2 最后一层配置
+│   ├── wav2vec2_1h_layer0.yaml   # wav2vec2 第0层配置（Layer Sweep）
+│   ├── wav2vec2_1h_layer3.yaml   # wav2vec2 第3层配置（Layer Sweep）
 │   ├── wav2vec2_1h_layer6_hf_cuda.yaml  # wav2vec2 第6层配置（消融实验）
-│   └── hubert_1h_frozen_hf_cuda.yaml    # HuBERT 配置
+│   ├── wav2vec2_1h_layer9.yaml   # wav2vec2 第9层配置（Layer Sweep）
+│   ├── hubert_1h_frozen_hf_cuda.yaml    # HuBERT 配置
+│   ├── wav2vec2_1h_finetune6.yaml  # wav2vec2 微调配置
+│   ├── hubert_1h_finetune6.yaml    # HuBERT 微调配置
+│   ├── wav2vec2_1h_layer6_lm.yaml  # wav2vec2 + LM 评估配置
+│   └── hubert_1h_lm.yaml           # HuBERT + LM 评估配置
 │
 ├── outputs/                      # 训练输出（每个实验一个子目录）
 │   ├── mel_1h_hf_cuda/           # 包含 metrics.json, test_predictions.csv, vocab.json, config.yaml
 │   ├── wav2vec2_1h_frozen_hf_cuda/
+│   ├── wav2vec2_1h_layer0_hf_cuda/   # Layer Sweep 新增
+│   ├── wav2vec2_1h_layer3_hf_cuda/   # Layer Sweep 新增
 │   ├── wav2vec2_1h_layer6_hf_cuda/
-│   └── hubert_1h_frozen_hf_cuda/
+│   ├── wav2vec2_1h_layer9_hf_cuda/   # Layer Sweep 新增
+│   ├── hubert_1h_frozen_hf_cuda/
+│   ├── wav2vec2_1h_finetune6_hf_cuda/  # Fine-tuning 新增
+│   └── hubert_1h_finetune6_hf_cuda/    # Fine-tuning 新增（最佳系统）
 │
 ├── results/                      # 最终汇总结果
 │   ├── summary.csv               # 所有实验的汇总指标
 │   ├── report_tables.tex         # LaTeX 表格（可直接嵌入论文）
-│   └── error_examples.csv        # 每个模型的最差预测样例（定性分析用）
+│   ├── error_examples.csv        # 每个模型的最差预测样例（定性分析用）
+│   └── layer_sweep.csv           # Layer Sweep 数据（5层×4指标）
 │
 ├── data/
 │   └── manifests/                # 数据清单（JSONL 格式）
@@ -134,8 +147,10 @@ low-resource-ssl-asr/
 |------|---------|--------|----------------|
 | **Log-mel 基线** | 80维 log-mel 频谱 | 4层全连接网络 | 是（从头训练） |
 | **wav2vec2 last** | 原始波形（16kHz） | wav2vec2-base | **否（冻结）** |
-| **wav2vec2 layer6** | 原始波形（16kHz） | wav2vec2-base 第6层 | **否（冻结）** |
+| **wav2vec2 layer0/3/6/9** | 原始波形（16kHz） | wav2vec2-base 指定层 | **否（冻结）** |
 | **HuBERT last** | 原始波形（16kHz） | hubert-base-ls960 | **否（冻结）** |
+| **wav2vec2 layer6 FT** | 原始波形（16kHz） | wav2vec2-base 第6层 | **阶段A冻结→阶段B解冻顶部6层** |
+| **HuBERT last FT** | 原始波形（16kHz） | hubert-base-ls960 | **阶段A冻结→阶段B解冻顶部6层** |
 
 ### 4.2 模型设计 (`src/models.py`)
 
@@ -253,8 +268,26 @@ low-resource-ssl-asr/
 - **目的**：测试另一种 SSL 预训练范式的效果
 - **模型**：SSLCTCModel(`facebook/hubert-base-ls960`, hidden_layer="last")
 - **训练**：5 epochs, batch_size=2, lr=0.001
-- **结果**：Dev WER=0.656, Test WER=0.662, Test CER=0.236
-- **分析**：**最佳系统**。HuBERT 的最终层比 wav2vec2 的最终层更适合下游 ASR 任务。这可能是因为 HuBERT 的预训练目标（聚类伪标签）更接近 ASR 的需求。
+- **结果**：Dev WER=0.656, Test WER=0.663, Test CER=0.232
+- **分析**：HuBERT 的最终层比 wav2vec2 的最终层更适合下游 ASR 任务。这可能是因为 HuBERT 的预训练目标（聚类伪标签）更接近 ASR 的需求。
+
+### 系统 5-7：Layer Sweep（`wav2vec2_1h_layer{0,3,9}_hf_cuda`）
+- **目的**：**补充实验 Phase 2**——扫描 wav2vec2 各层表征，验证 U 形曲线
+- **模型**：SSLCTCModel(`facebook/wav2vec2-base`, hidden_layer="0"/"3"/"9")
+- **训练**：5 epochs, batch_size=2, lr=0.001（与系统2/3完全相同）
+- **结果**：
+  - layer 0: Test WER=0.974, Test CER=0.582
+  - layer 3: Test WER=0.915, Test CER=0.418
+  - layer 9: Test WER=0.617, Test CER=0.243
+- **关键发现**：Layer 9 是最优层（WER=0.617），形成完美 U 形曲线：layer 0 (0.974) → 3 (0.915) → 6 (0.670) → 9 (0.617) → 12 (0.986)
+
+### 系统 8-9：Fine-tuning（`wav2vec2_1h_finetune6_hf_cuda`, `hubert_1h_finetune6_hf_cuda`）
+- **目的**：**补充实验 Phase 3**——两阶段训练：冻结预热(epoch 1-3) + 解冻顶部6层(epoch 4-8)
+- **训练**：8 epochs, batch_size=2, Phase A lr=0.001, Phase B lr=0.0001
+- **结果**：
+  - wav2vec2 layer6 FT: Test WER=0.683, Test CER=0.271（**无改善**，反而不如冻结layer9）
+  - **HuBERT last FT: Test WER=0.320, Test CER=0.106**（**最佳系统！WER减半**）
+- **关键发现**：微调效果高度依赖预训练范式——HuBERT受益巨大（-51.6%），wav2vec2几乎无效
 
 ---
 
@@ -262,17 +295,23 @@ low-resource-ssl-asr/
 
 | 系统 | Dev WER ↓ | Test WER ↓ | Test CER ↓ | RTF |
 |------|-----------|------------|------------|-----|
-| Log-mel 基线 | 1.000 | 1.000 | 1.000 | ~0.00004 |
-| wav2vec2 最终层 | 0.986 | 0.985 | 0.596 | 0.0043 |
-| **wav2vec2 第6层** | **0.659** | **0.667** | **0.262** | 0.0042 |
-| **HuBERT 最终层** | **0.656** | **0.662** | **0.236** | 0.0044 |
+| Log-mel 基线 | 1.000 | 1.000 | 1.000 | ~0.00005 |
+| wav2vec2 layer 0 | 0.975 | 0.974 | 0.582 | 0.0022 |
+| wav2vec2 layer 3 | 0.913 | 0.915 | 0.418 | 0.0022 |
+| wav2vec2 最终层 | 0.989 | 0.986 | 0.640 | 0.0022 |
+| wav2vec2 第6层 | 0.666 | 0.670 | 0.281 | 0.0021 |
+| **wav2vec2 第9层** | **0.605** | **0.617** | **0.243** | 0.0022 |
+| wav2vec2 layer6 FT | 0.678 | 0.683 | 0.271 | 0.0011 |
+| HuBERT 最终层 | 0.656 | 0.663 | 0.232 | 0.0020 |
+| **HuBERT FT** | **0.316** | **0.320** | **0.106** | 0.0011 |
 
 **核心结论**：
 1. ✅ 预训练 SSL 表征对低资源 ASR 确实有用（SSL 系统远超基线）
-2. ✅ 表征层选择非常重要（wav2vec2 第6层远超最终层）
-3. ✅ HuBERT 在冻结条件下优于 wav2vec2
-4. ✅ 使用冻结编码器，仅训练小 CTC 头，在 8GB GPU 上完全可行
-5. ⚠️ 冻结最终层表征 + 小 CTC 头并不能自动解决任务——WER 仍然较高（~66%），说明还需要语言模型或编码器微调
+2. ✅ Layer Sweep 揭示完美 U 形曲线——layer 9 最优（WER 0.617），最浅和最深都差
+3. ✅ 表征层选择比模型家族选择更重要（选对 layer 的 wav2vec2 可超过 HuBERT frozen）
+4. ✅ **HuBERT 微调是全表最强系统**（WER 0.320），WER 砍半
+5. ⚠️ **微调效果高度依赖预训练范式**——wav2vec2 微调几乎无效，选对 frozen layer 反而更好
+6. ⚠️ 即使最佳系统（HuBERT FT, WER 0.320），无 LM 的字符级 CTC 仍有限制
 
 ---
 
@@ -288,11 +327,16 @@ low-resource-ssl-asr/
 - 严重退化，大量无意义输出（如 "bt swate se g ni int lo psa d dfs in nomas be tomn w sss"）
 - 最终层表征可能丢失了太多语音细节
 
-### HuBERT 和 wav2vec2 第6层
+### HuBERT 和 wav2vec2 第6/9层
 - 错误更"合理"：保留了语音结构，但拼写错误多
 - 例如 "stephanos dedalos" → "stdeffenos det lse"（语音近似但拼写错）
 - 短句/名字/生僻词尤其困难
 - 这是**字符级贪婪 CTC 无语言模型**的预期表现
+
+### HuBERT Fine-tuning
+- 最佳系统，错误大幅减少但仍有明显拼写问题
+- 相比 frozen 版，输出更连贯，单词边界更准确
+- 短词和功能词（the, a, of）识别率显著提升
 
 ---
 
@@ -303,22 +347,24 @@ low-resource-ssl-asr/
 | 要求 | 完成情况 |
 |------|---------|
 | 使用语音自监督模型提取表征 | ✅ wav2vec2 和 HuBERT |
-| 构建 ASR 系统（含对比实验） | ✅ 4 个系统，含 1 个非 SSL 基线 + 层消融实验 |
+| 构建 ASR 系统（含对比实验） | ✅ 9 个系统，含 1 个非 SSL 基线 + 5层层消融 + 2个微调实验 |
 | 使用公开英文数据集 | ✅ LibriSpeech |
 | 报告 WER/CER | ✅ 完整记录 |
-| 报告 RTF | ✅ 已记录（~0.004 实时率，非常快） |
-| 不同自监督模型的比较 | ✅ wav2vec2 vs HuBERT |
-| 不同 hidden layer 的比较 | ✅ wav2vec2 最终层 vs 第6层 |
+| 报告 RTF | ✅ 已记录（~0.001-0.002 实时率，非常快） |
+| 不同自监督模型的比较 | ✅ wav2vec2 vs HuBERT（含冻结与微调对比） |
+| 不同 hidden layer 的比较 | ✅ wav2vec2 5层完整扫描（0, 3, 6, 9, 12） |
 | 连续表征分析 | ✅ 专注于连续 hidden states |
 | 错误案例分析 | ✅ 每个模型 top-10 最差预测 |
+| 编码器微调实验 | ✅ 两阶段微调（wav2vec2 + HuBERT） |
 | 论文格式 | ✅ ICASSP 2026 LaTeX 模板 |
 
 ### 未覆盖的方向（论文中已说明为有意限制）：
 - 离散语音单元（未使用量化器，没有 codebook/token rate/bitrate 分析）
-- 编码器微调（仅做冻结实验）
-- 语言模型融合
+- 语言模型融合（因服务器编译环境问题未完成，LM beam search 代码已实现）
 - 大范围数据规模变化（仅 1 小时点）
 - BPE/子词建模
+- 微调超参搜索（仅测试了一组配置）
+- 噪声/自发/口音语音的鲁棒性测试
 
 ---
 
@@ -380,4 +426,6 @@ low-resource-ssl-asr/
    ```
 
 TODO:
-- 图表修复绘制
+- LM 融合实验（Phase 4，需在有 cmake 编译环境的主机上运行）
+- 微调超参搜索（finetune_layers, finetune_lr 的网格搜索）
+- 数据量 scaling 实验

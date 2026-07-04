@@ -9,9 +9,10 @@ Face `openslr/librispeech_asr` parquet mirror.
 ## Main Systems
 
 - log-mel features + small character CTC baseline
-- wav2vec 2.0 base hidden states + CTC head
-- HuBERT base hidden states + CTC head
-- layer ablation: wav2vec 2.0 final layer versus layer 6
+- wav2vec 2.0 base hidden states + CTC head (frozen encoder)
+- HuBERT base hidden states + CTC head (frozen encoder)
+- Layer sweep: wav2vec 2.0 layers 0, 3, 6, 9, 12/final (5 frozen variants)
+- Two-phase fine-tuning: wav2vec 2.0 layer 6 and HuBERT last (top-6 unfrozen)
 
 ## Environment
 
@@ -52,11 +53,25 @@ Generated manifests:
 
 ## Run Experiments
 
+Base experiments:
 ```powershell
 .\.venv_cuda\Scripts\python.exe scripts\train_asr.py --config configs\mel_1h_hf_cuda.yaml
 .\.venv_cuda\Scripts\python.exe scripts\train_asr.py --config configs\wav2vec2_1h_frozen_hf_cuda.yaml
 .\.venv_cuda\Scripts\python.exe scripts\train_asr.py --config configs\hubert_1h_frozen_hf_cuda.yaml
 .\.venv_cuda\Scripts\python.exe scripts\train_asr.py --config configs\wav2vec2_1h_layer6_hf_cuda.yaml
+```
+
+Supplementary experiments (Layer Sweep + Fine-tuning):
+```bash
+# One-click runner
+./run_supplementary_experiments.sh
+
+# Or individual:
+python scripts/train_asr.py --config configs/wav2vec2_1h_layer0.yaml
+python scripts/train_asr.py --config configs/wav2vec2_1h_layer3.yaml
+python scripts/train_asr.py --config configs/wav2vec2_1h_layer9.yaml
+python scripts/train_asr.py --config configs/wav2vec2_1h_finetune6.yaml
+python scripts/train_asr.py --config configs/hubert_1h_finetune6.yaml
 ```
 
 Or run the listed plan:
@@ -73,8 +88,13 @@ Regenerate summary tables and qualitative error examples:
 .\.venv_cuda\Scripts\python.exe scripts\summarize_results.py --outputs outputs --report-dir results
 ```
 
-Current final metrics are in `results/summary.csv`. The report PDF is
-`report/build/main.pdf`.
+Current final metrics are in `results/summary.csv` (9 systems). Key results:
+- **Best overall: HuBERT FT — WER 0.320, CER 0.106**
+- Best frozen: wav2vec2 layer 9 — WER 0.617, CER 0.243
+- Layer sweep reveals U-shaped curve (layer 9 optimal)
+- Full analysis in `SUPPLEMENTARY_RESULTS.md`
+
+The report PDF is `report/build/main.pdf`.
 
 ## Notes
 
