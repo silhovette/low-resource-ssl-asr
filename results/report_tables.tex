@@ -1,7 +1,9 @@
-\begin{table}[t]
+\begin{table}[H]
 \centering
-\small
+\scriptsize
 \caption{Low-resource ASR performance using 1 hour of LibriSpeech train-clean-100.}
+\label{tab:main}
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{lccc}
 \toprule
 System & Dev WER & Test WER & Test CER \\
@@ -17,4 +19,5 @@ wav2vec2 layer 6 & 0.666 & 0.670 & 0.281 \\
 wav2vec2 layer 9 & 0.605 & 0.617 & 0.243 \\
 \bottomrule
 \end{tabular}
+}
 \end{table}
